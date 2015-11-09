@@ -9,6 +9,7 @@ object HopBuild extends Build {
     val scalatest = "2.2.1"
     val argonaut = "6.1"
     val scalaz = "7.1.3"
+    val scalazStream = "0.7.3a"
   }
 
   lazy val hop = Project(
@@ -19,14 +20,15 @@ object HopBuild extends Build {
       organization := "net.mcarolan",
       version := "0.1-SNAPSHOT",
       scalaVersion := "2.11.5",
-      libraryDependencies += "org.scalatest" % "scalatest_2.11" % Versions.scalatest % "test",
+      libraryDependencies += "org.scalatest" %% "scalatest" % Versions.scalatest % "test",
       libraryDependencies += "com.rabbitmq" % "amqp-client" % Versions.amqpclient,
       libraryDependencies += "org.http4s" %% "http4s-dsl"          % Versions.http4s % "test",
       libraryDependencies += "org.http4s" %% "http4s-blaze-client" % Versions.http4s % "test",
       libraryDependencies += "org.http4s" %% "http4s-argonaut" % Versions.http4s % "test",
       libraryDependencies += "io.argonaut" %% "argonaut" % Versions.argonaut % "test",
       libraryDependencies += "org.scalaz" %% "scalaz-core" % Versions.scalaz,
-      libraryDependencies += "org.scalaz" %% "scalaz-concurrent" % Versions.scalaz
+      libraryDependencies += "org.scalaz" %% "scalaz-concurrent" % Versions.scalaz,
+      libraryDependencies += "org.scalaz.stream" %% "scalaz-stream" % Versions.scalazStream
     )
   )
 }
