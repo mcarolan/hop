@@ -19,7 +19,7 @@ object HopBuild extends Build {
       name := "hop",
       organization := "net.mcarolan",
       version := "0.1-SNAPSHOT",
-      scalaVersion := "2.11.5",
+      scalaVersion := "2.11.7",
       libraryDependencies += "org.scalatest" %% "scalatest" % Versions.scalatest % "test",
       libraryDependencies += "com.rabbitmq" % "amqp-client" % Versions.amqpclient,
       libraryDependencies += "org.http4s" %% "http4s-dsl"          % Versions.http4s % "test",
@@ -28,7 +28,8 @@ object HopBuild extends Build {
       libraryDependencies += "io.argonaut" %% "argonaut" % Versions.argonaut % "test",
       libraryDependencies += "org.scalaz" %% "scalaz-core" % Versions.scalaz,
       libraryDependencies += "org.scalaz" %% "scalaz-concurrent" % Versions.scalaz,
-      libraryDependencies += "org.scalaz.stream" %% "scalaz-stream" % Versions.scalazStream
+      libraryDependencies += "org.scalaz.stream" %% "scalaz-stream" % Versions.scalazStream,
+      libraryDependencies += "com.chuusai" %% "shapeless" % "2.2.5"
     )
   )
 }
