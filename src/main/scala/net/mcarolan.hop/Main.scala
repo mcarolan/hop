@@ -12,9 +12,10 @@ object Main extends App {
     }
       yield Ack
 
-  def processB(message: Message): Task[Action] =
+  def processB(publisher: Message => Task[Unit], message: Message): Task[Action] =
     for {
       _ <- Task(println("Received from B " + message))
+      _ <- publisher(Message(MessagePayload("Have you seen this? " + message.payload.value)))
     }
       yield Nack
 
@@ -22,10 +23,10 @@ object Main extends App {
 
   val rabbitClient = RabbitClient("localhost")
 
-  val testPublisher = rabbitClient.publish(Exchange(""), RoutingKey("test"))_
+  val testPublisher = rabbitClient.publish(Exchange(""), RoutingKey("a"))_
 
   val consumers = Seq(Consumer(QueueName("a"), printMessage),
-                      Consumer(QueueName("b"), processB))
+                      Consumer(QueueName("b"), processB(testPublisher, _)))
 
   rabbitClient.compile(consumers:_*).run.run
 }

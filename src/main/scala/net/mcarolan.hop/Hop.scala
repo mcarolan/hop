@@ -53,16 +53,18 @@ object Hop {
 			channel.basicPublish(toPublish.exchange.value, toPublish.routingKey.value, new BasicProperties(), toPublish.message.payload.value.getBytes)
 		}
 
-		private val publishSink: Sink[Task, ToPublish] =
-			connectionStream.flatMap(channelStream).map(chan => doPublish(chan)_)
+		private def publishSink(conn: Connection): Sink[Task, ToPublish] =
+			channelStream(conn) flatMap { chan =>
+				Process repeatEval Task(doPublish(chan)_)
+			}
 
 		private val publishQ: async.mutable.Queue[ToPublish] = async.boundedQueue(10)
-		private val publisherStream: Process[Task, Unit] = (publishQ.dequeue to publishSink)
+		private def publisherStream(conn: Connection): Process[Task, Unit] = (publishQ.dequeue to publishSink(conn))
 
 		private case class RawMessage(envelope: Envelope, properties: AMQP.BasicProperties, body: Array[Byte])
 
-		private def consumerProcess(consumer: Consumer): Process[Task, Unit] =
-			connectionStream.flatMap(channelStream) flatMap { chan =>
+		private def consumerProcess(connection: Connection, consumer: Consumer): Process[Task, Unit] =
+			channelStream(connection) flatMap { chan =>
 				def createConsumer: Task[QueueingConsumer] = Task {
 					val queueingConsumer = new QueueingConsumer(chan)
 					chan.basicConsume(consumer.queueName.value, false, queueingConsumer)
@@ -90,10 +92,13 @@ object Hop {
 		def publish(exchange: Exchange, routingKey: RoutingKey)(message: Message): Task[Unit] =
 			publishQ.enqueueOne(ToPublish(exchange, routingKey, message))
 
-		def compile(consumer: Consumer*): Process[Task, Unit] = {
-			val processes = NonEmptyList(publisherStream, consumer.map(consumerProcess):_*)
-			processes.foldLeft(Process.empty[Task, Unit])(_ merge _)
-		}
+		def compile(consumer: Consumer*): Process[Task, Unit] =
+			connectionStream flatMap { conn =>
+				val consumers = consumer.map(consumerProcess(conn, _))
+				val publisher = publisherStream(conn)
+				val processes = NonEmptyList(publisher, consumers:_*)
+				processes.foldLeft(Process.empty[Task, Unit])(_ merge _)
+			}
 
 	}
 }
