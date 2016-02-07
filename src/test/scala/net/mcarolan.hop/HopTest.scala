@@ -8,8 +8,11 @@ import com.rabbitmq.client.Connection
 import com.rabbitmq.client.Channel
 import scalaz.stream._
 import scalaz.concurrent.Task
+import java.util.concurrent.{Executors, TimeoutException}
 
 class HopTest extends FunSuite with ManagementApiMatchers {
+
+	implicit val scheduledEC = Executors.newScheduledThreadPool(1)
 
 	import Hop._
 
@@ -40,6 +43,11 @@ class HopTest extends FunSuite with ManagementApiMatchers {
 	// 	shouldHaveNoConnections.run
 	// }
 
+	def printAndAck(message: Message): Task[Action] = Task {
+		println(message)
+		Ack
+	}
+
 	test("Should be able to publish to a queue") {
 		val setup =
 			for {
@@ -61,15 +69,18 @@ class HopTest extends FunSuite with ManagementApiMatchers {
 
 		preconditions.run
 
-		RabbitConnection("localhost") { client =>
-			val basicPublisher = client.publish(QueueName("basicPublishTest"))_
-			basicPublisher(Message(MessagePayload("hi"))).run
-		}
+		val connection = RabbitClient("localhost")
 
-		shouldHaveOneMessage("basicPublishTest").run
+		connection.publish(RoutingKey("basicPublishTest"), Message(MessagePayload("hi"))).run
 
-		//end with no connections
-		shouldHaveNoConnections.run
+		val compiled = connection.compile(Consumer(QueueName("basicPublishTest"), printAndAck))
+		compiled.run.timed(5000).handleWith {
+			case e: TimeoutException => {
+				Task.now(())
+			}
+		}.run
+
+		shouldHaveNoMessages("basicPublishTest").run
 	}
 
 }
